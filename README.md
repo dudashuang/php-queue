@@ -6,9 +6,9 @@ a simple libraries for working with event and task queues.
 
 * redis
 
-```bash
-sudo apt-get install redis-server
-```
+    ```bash
+    sudo apt-get install redis-server
+    ```
 
 ### Base Usage
 
