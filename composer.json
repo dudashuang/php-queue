@@ -1,0 +1,22 @@
+{
+    "name": "dudashuang/php-queue",
+    "description": "a simple libraries for working with event and task queues.",
+    "type": "library",
+    "authors": [
+        {
+            "name": "dudashuang",
+            "email": "dudashuang1222@gmail.com"
+        }
+    ],
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.3.3",
+        "predis/predis": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lily\\": "src/"
+        }
+    }
+}
