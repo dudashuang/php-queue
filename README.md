@@ -1,4 +1,8 @@
-# php-queue
+# php-queue 
+![](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![](https://img.shields.io/badge/php->=5.3.3-bule.svg)
+![](https://img.shields.io/badge/predis-^1.1-yellow.svg)
+
 
 a simple libraries for working with event and task queues.
 
