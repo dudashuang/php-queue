@@ -26,7 +26,7 @@ a simple library for working with event and task queues.
 
 * create new job
 
-    ```
+    ```php
     <?php
     namespace GPK\Jobs;
     
@@ -45,12 +45,12 @@ a simple library for working with event and task queues.
           //  $this->mark_as_failed();
         }
     }
-    
+   
     ```
 
 * dispatch the created job 
 
-    ```
+    ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
     
@@ -81,7 +81,7 @@ a simple library for working with event and task queues.
 
 * create listener 
 
-    ```
+    ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
     
