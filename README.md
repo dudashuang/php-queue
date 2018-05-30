@@ -10,8 +10,16 @@ a simple libraries for working with event and task queues.
 
 * redis
 
-    ```bash
+    ```shell
     sudo apt-get install redis-server
+    ```
+    
+### Install
+
+* composer
+
+    ```shell
+    composer require dudashuang/php-queue
     ```
 
 ### Base Usage
@@ -94,13 +102,13 @@ you can use supervisor to manage consumer
 
 * install 
 
-    ```bash
+    ```shell
     sudo apt-get install supervisor
     ```
 
 * supervisor config
 
-    ```bash
+    ```shell
     sudo vim /etc/supervisor/conf.d/guopika.config
     ```
 
