@@ -23,14 +23,14 @@ final class RedisConnector implements IConnector {
         return static::$redis;
     }
 
-    public function __construct() {
+    private function __construct() {
     }
 
-    public function __clone() {
+    private function __clone() {
         // TODO: Implement __clone() method.
     }
 
-    public function __wakeup() {
+    private function __wakeup() {
         // TODO: Implement __wakeup() method.
     }
 }
