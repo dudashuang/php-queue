@@ -4,7 +4,7 @@
 ![](https://img.shields.io/badge/license-MIT-yellow.svg)
 
 
-a simple libraries for working with event and task queues.
+a simple library for working with event and task queues.
 
 ### Requirement
 
