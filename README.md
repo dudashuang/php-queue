@@ -52,6 +52,7 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
         'scheme' => 'tcp',
         'host' => 'localhost',
         'port' => 6379,
+        'read_write_timeout' => 0,
         'default_queue' => 'queue_name',
     ]);
     ```

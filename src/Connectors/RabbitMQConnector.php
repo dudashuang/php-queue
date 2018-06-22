@@ -22,6 +22,9 @@ class RabbitMQConnector implements IConnector {
         }
     }
 
+    /**
+     * @return AMQPStreamConnection
+     */
     public function get_connection() {
         return new AMQPStreamConnection($this->host, $this->port, $this->username, $this->password);
     }

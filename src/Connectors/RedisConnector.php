@@ -10,6 +10,8 @@ class RedisConnector implements IConnector {
 
     private $port = 6379;
 
+    private $read_write_timeout = 0;
+
     public function __construct(array $options = []) {
         $keys = get_object_vars($this);
 
@@ -20,11 +22,15 @@ class RedisConnector implements IConnector {
         }
     }
 
+    /**
+     * @return Client
+     */
     public function get_connection() {
         return new Client([
-            'scheme' => $this->scheme,
-            'host'   => $this->host,
-            'port'   => $this->port,
+            'scheme'             => $this->scheme,
+            'host'               => $this->host,
+            'port'               => $this->port,
+            'read_write_timeout' => $this->read_write_timeout,
         ]);
     }
 }
