@@ -1,17 +1,19 @@
 {
     "name": "dudashuang/php-queue",
-    "description": "a simple libraries for working with event and task queues.",
+    "description": "a php client for message queue",
     "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "dudashuang",
             "email": "dudashuang1222@gmail.com"
         }
     ],
-    "license": "MIT",
     "minimum-stability": "dev",
     "require": {
-        "php": ">=5.6.0",
+        "php": ">=7.0.0",
+        "php-amqplib/php-amqplib": "^2.7",
+        "kwn/php-rdkafka-stubs": "~1.1.0",
         "predis/predis": "^1.1"
     },
     "autoload": {

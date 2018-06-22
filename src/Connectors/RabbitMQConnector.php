@@ -1,14 +1,16 @@
 <?php
 namespace Lily\Connectors;
 
-use Predis\Client;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
 
-class RedisConnector implements IConnector {
-    private $scheme = 'tcp';
+class RabbitMQConnector implements IConnector {
+    private $host = 'localhost';
 
-    private $host = '127.0.0.1';
+    private $port = 5672;
 
-    private $port = 6379;
+    private $username = 'guest';
+
+    private $password = 'guest';
 
     public function __construct(array $options = []) {
         $keys = get_object_vars($this);
@@ -21,10 +23,7 @@ class RedisConnector implements IConnector {
     }
 
     public function get_connection() {
-        return new Client([
-            'scheme' => $this->scheme,
-            'host'   => $this->host,
-            'port'   => $this->port,
-        ]);
+        return new AMQPStreamConnection($this->host, $this->port, $this->username, $this->password);
     }
+
 }

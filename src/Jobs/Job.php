@@ -1,139 +1,60 @@
 <?php
 namespace Lily\Jobs;
 
-use Lily\DispatchAble;
+use Lily\DispatchAble\IDispatchAble;
 
-abstract class Job {
-    use DispatchAble;
+abstract class Job implements IDispatchAble {
+    protected $job_id;
 
-    /**
-     * failed times.
-     *
-     * @var int
-     */
-    public $failed_times = 0;
+    protected $is_deleted = false;
 
-    /**
-     * queue name
-     *
-     * @var string
-     */
-    public $queue;
+    protected $retry_num = 0;
 
-    /**
-     * has delayed.
-     *
-     * @var bool
-     */
-    public $delay = false;
+    protected $queue;
 
-    /**
-     * delayed to.
-     *
-     * @var string
-     * eg: "2018-05-11 00:00:00"
-     */
-    public $delayed_to;
+    protected $delay;
 
-    /**
-     * is deleted.
-     *
-     * @var bool
-     */
-    protected $deleted = false;
+    public function __construct(array $params = []) {
+        $this->job_id = str_random(64);
+        $keys         = array_keys(get_object_vars($this));
 
-    /**
-     * has failed.
-     *
-     * @var bool
-     */
-    protected $failed = false;
+        foreach ($params as $key => $value) {
+            if (in_array($key, $keys)) {
+                $this->{$key} = $value;
+            }
+        }
 
-    /**
-     * job execute entrance.
-     * all logic code should in this func.
-     *
-     * @return mixed
-     */
+    }
+
     abstract public function handle();
 
-    /**
-     * mark this job deleted.
-     */
-    public function delete() {
-        $this->deleted = true;
+    public function prepare_data(): string {
+        return json_encode([
+            'job'    => static::class,
+            'params' => get_object_vars($this),
+        ]);
     }
 
-    /**
-     * check job is deleted.
-     *
-     * @return bool
-     */
-    public function is_deleted() {
-        return $this->deleted;
-    }
-
-    /**
-     * mark this job execute failed.
-     */
-    public function mark_as_failed() {
-        $this->failed = true;
-        $this->failed_times += 1;
-
-        if ($this->get_failed_times() <= 3 && !$this->is_deleted()) {
-
-            $this->dispatch($this, $this->get_queue());
-        }
-    }
-
-    /**
-     * check job has failed.
-     *
-     * @return bool
-     */
-    public function has_failed() {
-        return $this->failed;
-    }
-
-    /**
-     * get job queue.
-     *
-     * @return string
-     */
     public function get_queue() {
         return $this->queue;
     }
 
-    /**
-     * set job queue.
-     *
-     * @param $queue_name string
-     */
-    public function set_queue($queue_name) {
-        $this->queue = $queue_name;
-    }
-
-    /**
-     * get job failed times.
-     *
-     * @return int
-     */
-    public function get_failed_times() {
-        return $this->failed_times;
-    }
-
-    /**
-     * delay execute the job.
-     *
-     * @param $execute_at
-     * @return $this job
-     */
-    public function execute_at($execute_at) {
-        if ($execute_at > date('Y-m-d H:i:s')) {
-            $this->delay      = true;
-            $this->delayed_to = $execute_at;
-        }
+    public function set_queue(string $queue) {
+        $this->queue = $queue;
 
         return $this;
+    }
+
+    public function delete() {
+        $this->is_deleted = true;
+    }
+
+    public function make_as_failed() {
+        $this->retry_num += 1;
+
+    }
+
+    public function check_can_retry() {
+        return $this->retry_num < 3 && $this->is_deleted === false;
     }
 }
