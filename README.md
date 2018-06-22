@@ -1,50 +1,52 @@
-# php-queue 
+# php-queue
+
 ![](https://img.shields.io/badge/build-passing-brightgreen.svg)
 ![](https://img.shields.io/badge/php->=7.0.0-bule.svg)
 ![](https://img.shields.io/badge/license-MIT-yellow.svg)
-
 
 A php client for message queue which is one of RabbitMQ, Kafka and Redis.
 
 ### Requirement
 
-* redis
+- redis
 
-    ```shell
+  ```shell
     sudo apt-get install redis-server
-    ```
-    
-* RabbitMQ
+  ```
+
+- RabbitMQ
 
     [http://dudashuang.com/rabbitmq/](http://dudashuang.com/rabbitmq/)
-    
-* Kafka
+
+- Kafka
 
     [http://dudashuang.com/kafka/](http://dudashuang.com/kafka/)
-    
+
 ### Install
 
-* composer
+- composer
 
-    ```shell
+  ```shell
     composer require dudashuang/php-queue
-    ```
+  ```
 
 ### Base Usage
 
-* examples
+- examples
+
   - [job](examples/Jobs/TestJob.php)
   - [event](examples/Events/PaySuccessEvent.php)
   - [listener](examples/Listeners/SendListener.php)
   - [ListenerServiceProvider](examples/ListenerServiceProvider.php)
 
-* create a application 
+- create a application 
+
   - if your driver is redis:
-  
+
     ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
-        
+    
     $application = new \Lily\Application([
         'driver' => 'redis',
         'scheme' => 'tcp',
@@ -53,9 +55,9 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
         'default_queue' => 'queue_name',
     ]);
     ```
-    
+
   - kafka:
-  
+
     ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
@@ -68,9 +70,9 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
         ],
     ]);
     ```
-    
+
   - rebbitmq:
-  
+
     ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
@@ -84,51 +86,63 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
     ]);
     ```
 
-* dispatch a job
+- dispatch a job
+
   - default queue
-  
+
     ```php
     for ($i=0; $i<10; $i++) {
         $application->dispatch(new TestJob(['a' => $i]));
     }
     ```
-    
+
   - other queue
-  
+
     ```php
     $application->dispatch((new TestJob(['a' => 'haha']))->set_queue($queue_name));
     ```
 
-* dispatch a event
+- dispatch a event
 
-    $application->dispatch(new TestEvent(['a' => 1]));
-    
-* create a consumer
+  ```php
+  $application->dispatch(new TestEvent(['a' => 1]));
+  ```
 
-    $application->consume($queue_name);
-    
-* create a listener
+- create a consumer
 
-    $application->listen(new TestListener(), ['TestEvent', 'TestEvent1']);
+  ```php
+  $application−>consume($queue_name);
+  ```
 
+- create a listener
+
+  ```php
+  $application->listen(new TestListener(), ['TestEvent', 'TestEvent1']);
+  ```
+
+### TODO
+
+- add RocketMQ driver
+
+- add delay queu
 
 ### Additional
 
 you can use supervisor to manage consumer
 
-* install 
+- install 
 
-    ```shell
+  ```shell
     sudo apt-get install supervisor
-    ```
+  ```
 
-* supervisor config
+- supervisor config
 
-    ```shell
+  ```shell
     sudo vim /etc/supervisor/conf.d/guopika.config
-    ```
+  ```
 
-    ```
+  ```
     [program:guopika-worker]
     process_name=%(program_name)s_%(process_num)02d
     command=php /path_to_listen_queue/cli_func
@@ -138,4 +152,4 @@ you can use supervisor to manage consumer
     numprocs=4
     redirect_stderr=true
     stdout_logfile=/path/worker.log
-    ```
+  ```
