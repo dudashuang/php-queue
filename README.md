@@ -78,7 +78,7 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
     require __DIR__ . '/vendor/autoload.php';
     
     $application = new \Lily\Application([
-        'driver'   => 'redis',
+        'driver'   => 'rabbitmq',
         'host'     => 'localhost',
         'port'     => 5672,
         'username' => 'guest',
