@@ -1,5 +1,5 @@
 <?php
-namespace GPK\Services\MessageQueue;
+namespace LilyTest;
 
 class ListenerServiceProvider {
     private static $listeners = [

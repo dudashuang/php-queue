@@ -18,7 +18,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Lily\\": "src/"
+            "Lily\\": "src/",
+            "LilyTest\\": "examples/"
         }
     }
 }

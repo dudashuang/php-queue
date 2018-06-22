@@ -1,5 +1,5 @@
 <?php
-namespace GPK\Services\MessageQueue\Events;
+namespace LilyTest\Events;
 
 use Lily\Events\Event;
 

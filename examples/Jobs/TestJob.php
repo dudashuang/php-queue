@@ -1,5 +1,5 @@
 <?php
-namespace GPK\Services\MessageQueue\Jobs;
+namespace LilyTest\Jobs;
 
 use Lily\Jobs\Job;
 
