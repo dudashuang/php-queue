@@ -124,7 +124,7 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
 
 - add RocketMQ driver
 
-- add delay queu
+- add delay queue
 
 ### Additional
 
