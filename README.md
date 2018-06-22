@@ -1,10 +1,10 @@
 # php-queue 
 ![](https://img.shields.io/badge/build-passing-brightgreen.svg)
-![](https://img.shields.io/badge/php->=5.6.0-bule.svg)
+![](https://img.shields.io/badge/php->=7.0.0-bule.svg)
 ![](https://img.shields.io/badge/license-MIT-yellow.svg)
 
 
-a simple library for working with event and task queues.
+A php client for message queue which is one of RabbitMQ, Kafka and Redis.
 
 ### Requirement
 
@@ -13,6 +13,14 @@ a simple library for working with event and task queues.
     ```shell
     sudo apt-get install redis-server
     ```
+    
+* RabbitMQ
+
+    [http://dudashuang.com/rabbitmq/](http://dudashuang.com/rabbitmq/)
+    
+* Kafka
+
+    [http://dudashuang.com/kafka/](http://dudashuang.com/kafka/)
     
 ### Install
 
@@ -24,76 +32,84 @@ a simple library for working with event and task queues.
 
 ### Base Usage
 
-* create new job
+* examples
+  - [job](examples/Jobs/TestJob.php)
+  - [event](examples/Events/PaySuccessEvent.php)
+  - [listener](examples/Listeners/SendListener.php)
+  - [ListenerServiceProvider](examples/ListenerServiceProvider.php)
 
+* create a application 
+  - if your driver is redis:
+  
     ```php
     <?php
-    namespace GPK\Jobs;
-    
-    use Lily\Jobs\BaseJob;
-    
-    class TestJob extends BaseJob {
-        public $a;
-        public $b;
-    
-        public function handle() {
-            echo "hello world \n";
-            echo "queue: " . $this->get_queue() . "\n";
-            echo "a:" . $this->a . "\n";
-            echo "b:" . $this->b . "\n";
-            echo "filed_times: " . $this->get_failed_times() . "\n";
-          //  $this->mark_as_failed();
-        }
-    }
-   
+    require __DIR__ . '/vendor/autoload.php';
+        
+    $application = new \Lily\Application([
+        'driver' => 'redis',
+        'scheme' => 'tcp',
+        'host' => 'localhost',
+        'port' => 6379,
+        'default_queue' => 'queue_name',
+    ]);
     ```
-
-* dispatch the created job 
-
+    
+  - kafka:
+  
     ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
     
-    class Test {
-        use \Lily\DispatchAble;
-    }
-    
-    $test = new Test();
-    
-    for ($i = 0; $i < 10; $i++) {
-        // default 
-        $test->dispatch(new GPK\Jobs\TestJob(['a' => $i, 'b' => $i + 1]));
-        
-        // chose queue
-        $test->dispatch(new GPK\Jobs\TestJob(['a' => $i, 'b' => $i + 1]), 'queue_name');
-        
-        // chose redis connection
-        $test->dispatch(new GPK\Jobs\TestJob(['a' => $i, 'b' => $i + 1]), 'queue_name', [
-            'scheme' => 'tcp',
-            'host'   => '127.0.0.1',
-            'port'   => 6379,
-        ]);
-        
-        // set execute time
-        $test->dispatch((new GPK\Jobs\TestJob(['a' => $i, 'b' => $i + 1]))->execute_at('2018-05-11 12:58:00'));
-    }
+    $application = new \Lily\Application([
+        'driver' => 'kafka',
+        'brokers' => [
+            ['host' => 'localhost', 'port' => 9092],
+            ...
+        ],
+    ]);
     ```
-
-* create listener 
-
+    
+  - rebbitmq:
+  
     ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
     
-    class TestConsume {
-        use \Lily\ConsumeAble;
-    }
-    
-    $test = new TestConsume();
-    
-    $test->consume();
-    
+    $application = new \Lily\Application([
+        'driver'   => 'redis',
+        'host'     => 'localhost',
+        'port'     => 5672,
+        'username' => 'guest',
+        'password' => 'guest',
+    ]);
     ```
+
+* dispatch a job
+  - default queue
+  
+    ```php
+    for ($i=0; $i<10; $i++) {
+        $application->dispatch(new TestJob(['a' => $i]));
+    }
+    ```
+    
+  - other queue
+  
+    ```php
+    $application->dispatch((new TestJob(['a' => 'haha']))->set_queue($queue_name));
+    ```
+
+* dispatch a event
+
+    $application->dispatch(new TestEvent(['a' => 1]));
+    
+* create a consumer
+
+    $application->consume($queue_name);
+    
+* create a listener
+
+    $application->listen(new TestListener(), ['TestEvent', 'TestEvent1']);
 
 
 ### Additional
