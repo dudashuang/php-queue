@@ -52,7 +52,7 @@ class Application {
      */
     public function __construct(IDriver $driver, array $options = []) {
         foreach ($options as $key => $value) {
-            if (array_key_exists($key, ['default_queue', 'failed_queue', 'dead_queue'])) {
+            if (in_array($key, ['default_queue', 'failed_queue', 'dead_queue'])) {
                 $this->{$key} = $value;
             }
         }
