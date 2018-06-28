@@ -3,7 +3,7 @@
 ![](https://img.shields.io/badge/build-passing-brightgreen.svg)
 ![](https://img.shields.io/badge/php->=7.0.0-red.svg)
 ![](https://img.shields.io/badge/license-MIT-yellow.svg)
-![](https://img.shields.io/badge/version-1.1.0-green.svg)
+![](https://img.shields.io/badge/version-v1.1.0-blue.svg)
 
 A php client for message queue which is one of RabbitMQ, Kafka and Redis.
 
@@ -92,7 +92,7 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
     <?php
     require __DIR__ . '/vendor/autoload.php';
         
-    $app = new Lily\Application($driver, [
+    $application = new Lily\Application($driver, [
         'deafult_queue' => 'default-queue',
         'failed_queue'  => 'failed-queue',
     ]);
