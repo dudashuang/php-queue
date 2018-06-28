@@ -1,17 +1,8 @@
 <?php
 namespace Lily;
 
-use Lily\Connectors\IConnector;
-use Lily\Connectors\KafkaConnector;
-use Lily\Connectors\RabbitMQConnector;
-use Lily\Connectors\RedisConnector;
 use Lily\DispatchAble\IDispatchAble;
 use Lily\Drivers\IDriver;
-use Lily\Drivers\Kafka;
-use Lily\Drivers\RabbitMQ;
-use Lily\Drivers\Redis;
-use Lily\Exceptions\UnknownDriverException;
-use Lily\Listeners\Listener;
 
 /**
  * Class Application
@@ -19,19 +10,14 @@ use Lily\Listeners\Listener;
  * @property string $dead_queue
  * @property string $failed_queue
  * @property string $default_queue
- * @property IConnector $connector
  * @property IDriver $driver
  * @method IDriver dispatch(IDispatchAble $message)
  * @method IDriver consume(string $queue)
- * @method IDriver listen(Listener $listener, array $events)
+ * @method IDriver listen(string $listener, array $events)
+ *
  * @package Lily
  */
 class Application {
-    /**
-     * @var IConnector
-     */
-    public $connector;
-
     /**
      * @var IDriver
      */
@@ -61,39 +47,18 @@ class Application {
     /**
      * Application constructor.
      *
+     * @param IDriver $driver
      * @param array $options
-     * @throws UnknownDriverException
      */
-    public function __construct(array $options) {
-        if (!array_key_exists('driver', $options)) {
-            throw new UnknownDriverException('the driver is required!');
-        }
-
-        $keys = get_object_vars($this);
+    public function __construct(IDriver $driver, array $options = []) {
         foreach ($options as $key => $value) {
-            if (array_key_exists($key, $keys)) {
+            if (array_key_exists($key, ['default_queue', 'failed_queue', 'dead_queue'])) {
                 $this->{$key} = $value;
             }
         }
 
-        switch ($options['driver']) {
-            case 'rabbitmq':
-                $this->connector = new RabbitMQConnector($options);
-                $this->driver    = new RabbitMQ($this);
-                break;
-            case 'kafka':
-                $this->connector = new KafkaConnector($options);
-                $this->driver    = new Kafka($this);
-                break;
-            case 'redis':
-                $this->connector = new RedisConnector($options);
-                $this->driver    = new Redis($this);
-                break;
-            default:
-                throw new UnknownDriverException('the driver should be one of rabbitmq, kafka and redis.');
-                break;
-        }
-
+        $this->driver = $driver;
+        $this->driver->set_app($this);
     }
 
     /**

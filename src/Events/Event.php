@@ -3,43 +3,64 @@ namespace Lily\Events;
 
 use Lily\DispatchAble\IDispatchAble;
 
+/**
+ * Class Event
+ *
+ * @package Lily\Events
+ */
 class Event implements IDispatchAble {
-    protected $queue;
 
-    protected $event_id;
+    /**
+     * @var string
+     */
+    private $queue;
 
-    public function __construct(array $params = []) {
-        $this->event_id = str_random(64);
-        $this->queue    = $this->get_short_name();
-        $keys           = array_keys(get_object_vars($this));
+    /**
+     * @var string
+     */
+    private $event_id;
 
-        foreach ($params as $key => $value) {
-            if (in_array($key, $keys)) {
-                $this->{$key} = $value;
-            }
-        }
-    }
-
-
+    /**
+     * @return string
+     * @throws
+     */
     public function prepare_data(): string {
+        $this->queue = $this->get_short_name();
+        $this->event_id = $this->event_id ?? hash('sha256', $this->get_short_name() . microtime(true) . mt_rand());
 
-        return json_encode([
-            'event'  => static::class,
-            'params' => get_object_vars($this),
-        ]);
+        return serialize($this);
     }
 
+    /**
+     * @return string
+     */
+    public function get_event_id() {
+
+        return $this->event_id;
+    }
+
+    /**
+     * @return string
+     */
     public function get_queue() {
 
         return $this->queue;
     }
 
+    /**
+     * @param string $queue
+     * @return $this
+     */
     public function set_queue(string $queue) {
         $this->queue = $queue;
 
         return $this;
     }
 
+    /**
+     * @return string
+     * @throws \ReflectionException
+     */
     public function get_short_name() {
         return (new \ReflectionClass($this))->getShortName();
     }

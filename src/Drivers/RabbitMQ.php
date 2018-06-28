@@ -2,26 +2,39 @@
 namespace Lily\Drivers;
 
 use Lily\Application;
+use Lily\Connectors\RabbitMQConnector;
 use Lily\DispatchAble\IDispatchAble;
 use Lily\Events\Event;
 use Lily\Exceptions\UnknownDispatchException;
 use Lily\Jobs\Job;
-use Lily\Listeners\Listener;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitMQ implements IDriver {
+    use ListenerHelper;
 
     /**
      * @var Application
      */
-    public $app;
+    private $app;
+
+    /**
+     * @var RabbitMQConnector
+     */
+    private $connector;
 
     /**
      * RabbitMQ constructor.
      *
+     * @param RabbitMQConnector $connector
+     */
+    public function __construct(RabbitMQConnector $connector) {
+        $this->connector = $connector;
+    }
+
+    /**
      * @param Application $app
      */
-    public function __construct(Application $app) {
+    public function set_app(Application $app) {
         $this->app = $app;
     }
 
@@ -48,23 +61,23 @@ class RabbitMQ implements IDriver {
      * @param string $queue
      */
     public function consume(string $queue) {
-        $connection = $this->app->connector->get_connection();
+        $connection = $this->connector->get_connection();
         $channel = $connection->channel();
         $channel->queue_declare($queue, false, true, false, false);
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
         $callback = function ($msg) {
-            $data = json_decode($msg->body);
-            $job  = new $data->job((array)$data->params);
+
+            $job = unserialize($msg->body);
 
             try {
                 $job->handle();
                 $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
             } catch (\Exception $e) {
-                echo $e->getMessage() . "\n";
                 $job->make_as_failed();
                 $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
+                echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
 
                 $msg->delivery_info['channel']->basic_reject($msg->delivery_info['delivery_tag'], false);
             }
@@ -87,13 +100,14 @@ class RabbitMQ implements IDriver {
      * create a consumer to listen events.
      * consume listener.
      *
-     * @param Listener $listener
+     * @param string $listener_name
      * @param array $events
+     * @throws
      */
-    public function listen(Listener $listener, array $events) {
-        $connection = $this->app->connector->get_connection();
+    public function listen(string $listener_name, array $events) {
+        $connection = $this->connector->get_connection();
         $channel = $connection->channel();
-        $queue_name = $listener->get_short_name();
+        $queue_name = $this->get_short_name($listener_name);
         $channel->queue_declare($queue_name, false, true, false, false);
 
         foreach ($events as $event) {
@@ -103,17 +117,16 @@ class RabbitMQ implements IDriver {
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
-        $callback = function ($msg) use ($listener) {
-            $listener_name = get_class($listener);
-            $listener      = new $listener_name(['event' => $msg->body]);
+        $callback = function ($msg) use ($listener_name) {
+            $listener = $this->get_new_instance_by_listener($listener_name, [unserialize($msg->body)]);
 
             try {
                 $listener->handle();
                 $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
             } catch (\Exception $e) {
-                echo $e->getMessage() . "\n";
                 $listener->make_as_failed();
                 $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
+                echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
 
                 $msg->delivery_info['channel']->basic_reject($msg->delivery_info['delivery_tag'], false);
             }
@@ -134,17 +147,18 @@ class RabbitMQ implements IDriver {
      * dispatch a event
      *
      * @param Event $event
+     * @throws
      */
     private function _dispatch_event(Event $event) {
-        $connection = $this->app->connector->get_connection();
+        $connection = $this->connector->get_connection();
         $channel = $connection->channel();
-
-        $channel->exchange_declare($event->get_queue(), 'fanout', false, true, false);
 
         $msg = new AMQPMessage(
             $event->prepare_data(),
             array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
         );
+
+        $channel->exchange_declare($event->get_queue(), 'fanout', false, true, false);
 
         $channel->basic_publish($msg, $event->get_queue());
 
@@ -158,7 +172,7 @@ class RabbitMQ implements IDriver {
      * @param Job $job
      */
     private function _dispatch_job(Job $job) {
-        $connection = $this->app->connector->get_connection();
+        $connection = $this->connector->get_connection();
         $channel = $connection->channel();
 
         if ($job->get_queue()) {

@@ -2,26 +2,39 @@
 namespace Lily\Drivers;
 
 use Lily\Application;
+use Lily\Connectors\KafkaConnector;
 use Lily\DispatchAble\IDispatchAble;
-use Lily\Listeners\Listener;
 use RdKafka\Conf;
 use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
 use RdKafka\TopicConf;
 
 class Kafka implements IDriver {
+    use ListenerHelper;
 
     /**
      * @var Application
      */
-    public $app;
+    private $app;
+
+    /**
+     * @var KafkaConnector
+     */
+    private $connector;
 
     /**
      * Kafka constructor.
      *
+     * @param KafkaConnector $connector
+     */
+    public function __construct(KafkaConnector $connector) {
+        $this->connector = $connector;
+    }
+
+    /**
      * @param Application $app
      */
-    public function __construct(Application $app) {
+    public function set_app(Application $app) {
         $this->app = $app;
     }
 
@@ -35,8 +48,9 @@ class Kafka implements IDriver {
         $producer->setLogLevel(LOG_DEBUG);
 
         // bind brokers
-        $producer->addBrokers($this->app->connector->get_connection());
+        $producer->addBrokers($this->connector->get_connection());
 
+        $data = $message->prepare_data();
 
         // bind topic
         if ($message->get_queue()) {
@@ -46,7 +60,7 @@ class Kafka implements IDriver {
             $topic = $producer->newTopic($this->app->default_queue);
         }
 
-        $topic->produce(RD_KAFKA_PARTITION_UA, 0, $message->prepare_data());
+        $topic->produce(RD_KAFKA_PARTITION_UA, 0, $data);
         $producer->poll(0);
 
         while ($producer->getOutQLen() > 0) {
@@ -70,7 +84,7 @@ class Kafka implements IDriver {
         $conf->set('group.id', $queue);
 
         // Initial list of Kafka brokers
-        $conf->set('metadata.broker.list', $this->app->connector->get_connection());
+        $conf->set('metadata.broker.list', $this->connector->get_connection());
 
         $consumer = new KafkaConsumer($conf);
 
@@ -81,15 +95,15 @@ class Kafka implements IDriver {
             $message = $consumer->consume(120*1000);
             switch ($message->err) {
                 case RD_KAFKA_RESP_ERR_NO_ERROR:
-                    $data = json_decode($message->payload);
-                    $job  = new $data->job((array)$data->params);
+
+                    $job = unserialize($message->payload);
 
                     try {
                         $job->handle();
                     } catch (\Exception $e) {
-                        echo $e->getMessage() . "\n";
                         $job->make_as_failed();
                         $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
+                        echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
                     }
 
                     break;
@@ -110,20 +124,20 @@ class Kafka implements IDriver {
      * create a consumer to listen events.
      * consume listener.
      *
-     * @param Listener $listener
+     * @param string $listener_name
      * @param array $events
      * @throws \Throwable
      */
-    public function listen(Listener $listener, array $events) {
+    public function listen(string $listener_name, array $events) {
         $conf = $this->_get_kafka_conf();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
         // Configure the group.id. All consumer with the same group.id will consume different partitions.
-        $conf->set('group.id', $listener->get_short_name());
+        $conf->set('group.id', $this->get_short_name($listener_name));
 
         // Initial list of Kafka brokers
-        $conf->set('metadata.broker.list', $this->app->connector->get_connection());
+        $conf->set('metadata.broker.list', $this->connector->get_connection());
 
         $consumer = new KafkaConsumer($conf);
 
@@ -134,15 +148,15 @@ class Kafka implements IDriver {
             $message = $consumer->consume(120*1000);
             switch ($message->err) {
                 case RD_KAFKA_RESP_ERR_NO_ERROR:
-                    $listener_name = get_class($listener);
-                    $listener      = new $listener_name(['event' => $message->payload]);
+
+                    $listener = $this->get_new_instance_by_listener($listener_name, [unserialize($message->payload)]);
 
                     try {
                         $listener->handle();
                     } catch (\Exception $e) {
-                        echo $e->getMessage() . "\n";
                         $listener->make_as_failed();
                         $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
+                        echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
                     }
 
                     break;

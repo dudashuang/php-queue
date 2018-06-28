@@ -2,25 +2,38 @@
 namespace Lily\Drivers;
 
 use Lily\Application;
+use Lily\Connectors\RedisConnector;
 use Lily\DispatchAble\IDispatchAble;
 use Lily\Events\Event;
 use Lily\Exceptions\UnknownDispatchException;
 use Lily\Jobs\Job;
-use Lily\Listeners\Listener;
 
 class Redis implements IDriver {
+    use ListenerHelper;
 
     /**
      * @var Application
      */
-    public $app;
+    private $app;
+
+    /**
+     * @var RedisConnector
+     */
+    private $connector;
 
     /**
      * Redis constructor.
      *
+     * @param RedisConnector $connector
+     */
+    public function __construct(RedisConnector $connector) {
+        $this->connector = $connector;
+    }
+
+    /**
      * @param Application $app
      */
-    public function __construct(Application $app) {
+    public function set_app(Application $app) {
         $this->app = $app;
     }
 
@@ -48,7 +61,7 @@ class Redis implements IDriver {
      * @throws UnknownDispatchException
      */
     public function consume(string $queue) {
-        $connection = $this->app->connector->get_connection();
+        $connection = $this->connector->get_connection();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
@@ -59,16 +72,15 @@ class Redis implements IDriver {
                 continue;
             }
 
-            $data = json_decode($item);
-            $job  = new $data->job((array)$data->params);
+            $job = unserialize($item);
 
             try {
                 $job->handle();
 
             } catch (\Exception $e) {
-                echo $e->getMessage() . "\n";
                 $job->make_as_failed();
                 $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
+                echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
             }
         }
     }
@@ -77,12 +89,12 @@ class Redis implements IDriver {
      * create a consumer to listen events.
      * consume listener.
      *
-     * @param Listener $listener
+     * @param string $listener_name
      * @param array $events
-     * @throws UnknownDispatchException
+     * @throws
      */
-    public function listen(Listener $listener, array $events) {
-        $connection = $this->app->connector->get_connection();
+    public function listen(string $listener_name, array $events) {
+        $connection = $this->connector->get_connection();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
@@ -96,15 +108,15 @@ class Redis implements IDriver {
                     echo "Subscribed to {$message->channel}\n";
                     break;
                 case 'message':
-                    $listener_name = get_class($listener);
-                    $listener      = new $listener_name(['event' => $message->payload]);
+
+                    $listener = $this->get_new_instance_by_listener($listener_name, [unserialize($message->payload)]);
 
                     try {
                         $listener->handle();
                     } catch (\Exception $e) {
-                        echo $e->getMessage() . "\n";
                         $listener->make_as_failed();
                         $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
+                        echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
                     }
                     break;
             }
@@ -117,7 +129,7 @@ class Redis implements IDriver {
      * @param Job $job
      */
     private function _dispatch_job(Job $job) {
-        $connection = $this->app->connector->get_connection();
+        $connection = $this->connector->get_connection();
 
         if ($job->get_queue()) {
             $queue = $job->get_queue();
@@ -135,8 +147,10 @@ class Redis implements IDriver {
      * @param Event $event
      */
     private function _dispatch_event(Event $event) {
-        $connection = $this->app->connector->get_connection();
+        $connection = $this->connector->get_connection();
 
-        $connection->publish($event->get_queue(), $event->prepare_data());
+        $data = $event->prepare_data();
+
+        $connection->publish($event->get_queue(), $data);
     }
 }

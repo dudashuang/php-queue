@@ -1,8 +1,9 @@
 # php-queue
 
 ![](https://img.shields.io/badge/build-passing-brightgreen.svg)
-![](https://img.shields.io/badge/php->=7.0.0-bule.svg)
+![](https://img.shields.io/badge/php->=7.0.0-red.svg)
 ![](https://img.shields.io/badge/license-MIT-yellow.svg)
+![](https://img.shields.io/badge/version-1.1.0-green.svg)
 
 A php client for message queue which is one of RabbitMQ, Kafka and Redis.
 
@@ -38,52 +39,62 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
   - [event](examples/Events/PaySuccessEvent.php)
   - [listener](examples/Listeners/SendListener.php)
   - [ListenerServiceProvider](examples/ListenerServiceProvider.php)
+  
+- create a driver
 
-- create a application 
-
-  - if your driver is redis:
-
-    ```php
-    <?php
-    require __DIR__ . '/vendor/autoload.php';
-    
-    $application = new \Lily\Application([
-        'driver' => 'redis',
-        'scheme' => 'tcp',
-        'host' => 'localhost',
-        'port' => 6379,
-        'read_write_timeout' => 0,
-        'default_queue' => 'queue_name',
-    ]);
+  - redis:
+  
     ```
-
-  - kafka:
-
-    ```php
     <?php
     require __DIR__ . '/vendor/autoload.php';
     
-    $application = new \Lily\Application([
-        'driver' => 'kafka',
+    $connector  = new Lily\Connectors\RedisConnector([
+        'scheme'             => 'tcp',
+        'host'               => '127.0.0.1',
+        'port'               => 6379,
+        'read_write_timeout' => 0,
+    ]);
+    $driver = new Lily\Drivers\Redis($connector);
+    ```
+    
+  - kafka:
+  
+    ```
+    <?php
+    require __DIR__ . '/vendor/autoload.php';
+    
+    $connector  = new Lily\Connectors\KafkaConnector([
         'brokers' => [
             ['host' => 'localhost', 'port' => 9092],
-            ...
         ],
     ]);
+    $driver = new Lily\Drivers\Kafka($connector);
     ```
-
-  - rebbitmq:
-
-    ```php
+    
+  - rabbitmq: 
+  
+    ```
     <?php
     require __DIR__ . '/vendor/autoload.php';
     
-    $application = new \Lily\Application([
-        'driver'   => 'rabbitmq',
+    $connector  = new Lily\Connectors\RabbitMQConnector([
         'host'     => 'localhost',
         'port'     => 5672,
         'username' => 'guest',
         'password' => 'guest',
+    ]);
+    $driver = new Lily\Drivers\RabbitMQ($connector);
+    ```
+
+- create a application 
+
+    ```
+    <?php
+    require __DIR__ . '/vendor/autoload.php';
+        
+    $app = new Lily\Application($driver, [
+        'deafult_queue' => 'default-queue',
+        'failed_queue'  => 'failed-queue',
     ]);
     ```
 
@@ -91,34 +102,34 @@ A php client for message queue which is one of RabbitMQ, Kafka and Redis.
 
   - default queue
 
-    ```php
+    ```
     for ($i=0; $i<10; $i++) {
-        $application->dispatch(new TestJob(['a' => $i]));
+        $application->dispatch(new TestJob('hello', new LilyTest\TestModel(1, 2)));
     }
     ```
 
   - other queue
 
-    ```php
-    $application->dispatch((new TestJob(['a' => 'haha']))->set_queue($queue_name));
+    ```
+    $application->dispatch((new TestJob(...))->set_queue($queue_name));
     ```
 
 - dispatch a event
 
-  ```php
-  $application->dispatch(new TestEvent(['a' => 1]));
+  ```
+  $application->dispatch(new TestEvent(...));
   ```
 
 - create a consumer
 
-  ```php
+  ```
   $application−>consume($queue_name);
   ```
 
 - create a listener
 
-  ```php
-  $application->listen(new TestListener(), ['TestEvent', 'TestEvent1']);
+  ```
+  $application->listen('LilyTest\Listeners\SendListener', ['TestEvent', 'TestEvent1']);
   ```
 
 ### TODO

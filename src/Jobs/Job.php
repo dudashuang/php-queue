@@ -3,58 +3,115 @@ namespace Lily\Jobs;
 
 use Lily\DispatchAble\IDispatchAble;
 
+/**
+ * Class Job
+ *
+ * @package Lily\Jobs
+ */
 abstract class Job implements IDispatchAble {
-    protected $job_id;
 
-    protected $is_deleted = false;
+    /**
+     * @var string
+     */
+    private $job_id;
 
-    protected $retry_num = 0;
+    /**
+     * @var bool
+     */
+    private $is_deleted = false;
 
-    protected $queue;
+    /**
+     * @var int
+     */
+    private $try_num = 0;
 
-    protected $delay;
+    /**
+     * @var string
+     */
+    private $queue;
 
-    public function __construct(array $params = []) {
-        $this->job_id = str_random(64);
-        $keys         = array_keys(get_object_vars($this));
-
-        foreach ($params as $key => $value) {
-            if (in_array($key, $keys)) {
-                $this->{$key} = $value;
-            }
-        }
-
-    }
-
+    /**
+     * the job will do something entrance.
+     *
+     * @return mixed
+     */
     abstract public function handle();
 
+    /**
+     * @return string
+     */
     public function prepare_data(): string {
-        return json_encode([
-            'job'    => static::class,
-            'params' => get_object_vars($this),
-        ]);
+        $this->job_id = $this->job_id ?? hash('sha256', $this->get_short_name() . microtime(true) . mt_rand());
+
+        return serialize($this);
     }
 
+    /**
+     * @return string
+     */
     public function get_queue() {
         return $this->queue;
     }
 
+    /**
+     * @param string $queue
+     * @return $this
+     */
     public function set_queue(string $queue) {
         $this->queue = $queue;
 
         return $this;
     }
 
+    /**
+     * @return int
+     */
+    public function get_try_num() {
+        return $this->try_num;
+    }
+
+    /**
+     * @return string
+     */
+    public function get_job_id() {
+        return $this->job_id;
+    }
+
+    /**
+     * @return bool
+     */
+    public function check_is_deleted() {
+        return $this->is_deleted;
+    }
+
+    /**
+     * mark the job failed.
+     */
+    public function make_as_failed() {
+        $this->try_num += 1;
+    }
+
+    /**
+     * mark the job be deleted, should not retry.
+     */
     public function delete() {
         $this->is_deleted = true;
     }
 
-    public function make_as_failed() {
-        $this->retry_num += 1;
-
+    /**
+     * check the job could retry.
+     *
+     * @return bool
+     */
+    public function check_can_retry() {
+        return $this->try_num < 3 && !$this->check_is_deleted();
     }
 
-    public function check_can_retry() {
-        return $this->retry_num < 3 && $this->is_deleted === false;
+    /**
+     * @return string
+     * @throws
+     */
+    public function get_short_name() {
+        return (new \ReflectionClass($this))->getShortName();
     }
 }
