@@ -23,6 +23,7 @@ class Listener extends Job {
      */
     final public function __construct(Event $event) {
         $this->event = $event;
+        $this->set_queue($this->get_short_name());
     }
 
     /**

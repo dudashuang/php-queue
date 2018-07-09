@@ -8,6 +8,7 @@ use Lily\Events\Event;
 use Lily\Exceptions\UnknownDispatchException;
 use Lily\Jobs\Job;
 use PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 
 class RabbitMQ implements IDriver {
     use ListenerHelper;
@@ -72,10 +73,11 @@ class RabbitMQ implements IDriver {
             $job = unserialize($msg->body);
 
             try {
+                $job->clear_delayed_time();
                 $job->handle();
                 $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
             } catch (\Exception $e) {
-                $job->make_as_failed();
+                $job->mark_as_failed();
                 $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
                 echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
 
@@ -121,10 +123,11 @@ class RabbitMQ implements IDriver {
             $listener = $this->get_new_instance_by_listener($listener_name, [unserialize($msg->body)]);
 
             try {
+                $listener->clear_delayed_time();
                 $listener->handle();
                 $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
             } catch (\Exception $e) {
-                $listener->make_as_failed();
+                $listener->mark_as_failed();
                 $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
                 echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
 
@@ -153,14 +156,33 @@ class RabbitMQ implements IDriver {
         $connection = $this->connector->get_connection();
         $channel = $connection->channel();
 
-        $msg = new AMQPMessage(
-            $event->prepare_data(),
-            array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
-        );
+        if ($event->get_delayed_time() > 0) {
+            $table = new AMQPTable();
+            $table->set('x-dead-letter-exchange', $event->get_queue());
 
-        $channel->exchange_declare($event->get_queue(), 'fanout', false, true, false);
+            $channel->queue_declare($event->get_queue() . '-delay',false,true,false,false,false, $table);
 
-        $channel->basic_publish($msg, $event->get_queue());
+            $msg = new AMQPMessage(
+                $event->prepare_data(),
+                [
+                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    'expiration' => $event->get_delayed_time() * 1000,
+                ]
+            );
+
+            $channel->basic_publish($msg, '', $event->get_queue() . '-delay');
+
+        } else {
+
+            $msg = new AMQPMessage(
+                $event->prepare_data(),
+                array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
+            );
+
+            $channel->exchange_declare($event->get_queue(), 'fanout', false, true, false);
+
+            $channel->basic_publish($msg, $event->get_queue());
+        }
 
         $channel->close();
         $connection->close();
@@ -182,14 +204,37 @@ class RabbitMQ implements IDriver {
             $job->set_queue($queue_name);
         }
 
-        $channel->queue_declare($queue_name, false, true, false, false);
+        if ($job->get_delayed_time() > 0) {
+            $table = new AMQPTable();
+            $table->set('x-dead-letter-exchange', '');
+            $table->set('x-dead-letter-routing-key', $queue_name);
 
-        $msg = new AMQPMessage(
-            $job->prepare_data(),
-            array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
-        );
+            // queue live to time.
+            // $table->set('x-message-ttl',$job->get_delayed_time() * 1000);
 
-        $channel->basic_publish($msg, '', $queue_name);
+            $channel->queue_declare($queue_name . '-delay',false,true,false,false,false, $table);
+
+            $msg = new AMQPMessage(
+                $job->prepare_data(),
+                [
+                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    'expiration' => $job->get_delayed_time() * 1000,
+                ]
+            );
+
+            $channel->basic_publish($msg, '', $queue_name . '-delay');
+
+        } else {
+
+            $channel->queue_declare($queue_name, false, true, false, false);
+
+            $msg = new AMQPMessage(
+                $job->prepare_data(),
+                array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
+            );
+
+            $channel->basic_publish($msg, '', $queue_name);
+        }
 
         $channel->close();
         $connection->close();

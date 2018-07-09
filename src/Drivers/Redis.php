@@ -78,7 +78,7 @@ class Redis implements IDriver {
                 $job->handle();
 
             } catch (\Exception $e) {
-                $job->make_as_failed();
+                $job->mark_as_failed();
                 $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
                 echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
             }
@@ -114,7 +114,7 @@ class Redis implements IDriver {
                     try {
                         $listener->handle();
                     } catch (\Exception $e) {
-                        $listener->make_as_failed();
+                        $listener->mark_as_failed();
                         $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
                         echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
                     }

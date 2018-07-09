@@ -31,6 +31,13 @@ abstract class Job implements IDispatchAble {
     private $queue;
 
     /**
+     * delayed seconds
+     *
+     * @var int
+     */
+    private $delay = 0;
+
+    /**
      * the job will do something entrance.
      *
      * @return mixed
@@ -41,7 +48,7 @@ abstract class Job implements IDispatchAble {
      * @return string
      */
     public function prepare_data(): string {
-        $this->job_id = $this->job_id ?? hash('sha256', $this->get_short_name() . microtime(true) . mt_rand());
+        $this->get_job_id();
 
         return serialize($this);
     }
@@ -74,6 +81,8 @@ abstract class Job implements IDispatchAble {
      * @return string
      */
     public function get_job_id() {
+        $this->job_id = $this->job_id ?? hash('sha256', $this->get_short_name() . microtime(true) . mt_rand());
+
         return $this->job_id;
     }
 
@@ -87,7 +96,7 @@ abstract class Job implements IDispatchAble {
     /**
      * mark the job failed.
      */
-    public function make_as_failed() {
+    public function mark_as_failed() {
         $this->try_num += 1;
     }
 
@@ -105,6 +114,32 @@ abstract class Job implements IDispatchAble {
      */
     public function check_can_retry() {
         return $this->try_num < 3 && !$this->check_is_deleted();
+    }
+
+    /**
+     * @param int $seconds
+     * @return $this
+     */
+    public function delay(int $seconds) {
+        $this->delay = $seconds;
+
+        return $this;
+    }
+
+    /**
+     * clear delayed time.
+     */
+    public function clear_delayed_time() {
+        $this->delay = 0;
+    }
+
+    /**
+     * get delayed time.
+     *
+     * @return int
+     */
+    public function get_delayed_time() {
+        return $this->delay;
     }
 
     /**
