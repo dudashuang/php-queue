@@ -1,6 +1,8 @@
 <?php
+
 namespace Lily\Connectors;
 
-interface IConnector {
+interface IConnector
+{
     public function get_connection();
 }

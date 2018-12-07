@@ -1,10 +1,12 @@
 <?php
+
 namespace Lily\Drivers;
 
 use Lily\Application;
 use Lily\DispatchAble\IDispatchAble;
 
-interface IDriver {
+interface IDriver
+{
     public function dispatch(IDispatchAble $message);
 
     public function consume(string $queue);

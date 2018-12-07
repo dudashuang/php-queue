@@ -1,15 +1,14 @@
 <?php
+
 namespace Lily\Events;
 
 use Lily\DispatchAble\IDispatchAble;
 
 /**
- * Class Event
- *
- * @package Lily\Events
+ * Class Event.
  */
-class Event implements IDispatchAble {
-
+class Event implements IDispatchAble
+{
     /**
      * @var string
      */
@@ -21,17 +20,19 @@ class Event implements IDispatchAble {
     private $event_id;
 
     /**
-     * delayed seconds
+     * delayed seconds.
      *
      * @var int
      */
     private $delay = 0;
 
     /**
-     * @return string
      * @throws
+     *
+     * @return string
      */
-    public function prepare_data(): string {
+    public function prepare_data(): string
+    {
         $this->get_event_id();
 
         return serialize($this);
@@ -40,8 +41,9 @@ class Event implements IDispatchAble {
     /**
      * @return string
      */
-    public function get_event_id() {
-        $this->event_id = $this->event_id ?? hash('sha256', $this->get_short_name() . microtime(true) . mt_rand());
+    public function get_event_id()
+    {
+        $this->event_id = $this->event_id ?? hash('sha256', $this->get_short_name().microtime(true).mt_rand());
 
         return $this->event_id;
     }
@@ -49,7 +51,8 @@ class Event implements IDispatchAble {
     /**
      * @return string
      */
-    public function get_queue() {
+    public function get_queue()
+    {
         $this->queue = $this->queue ?? $this->get_short_name();
 
         return $this->queue;
@@ -57,9 +60,11 @@ class Event implements IDispatchAble {
 
     /**
      * @param string $queue
+     *
      * @return $this
      */
-    public function set_queue(string $queue) {
+    public function set_queue(string $queue)
+    {
         $this->queue = $queue;
 
         return $this;
@@ -67,9 +72,11 @@ class Event implements IDispatchAble {
 
     /**
      * @param int $seconds
+     *
      * @return $this
      */
-    public function delay(int $seconds) {
+    public function delay(int $seconds)
+    {
         $this->delay = $seconds;
 
         return $this;
@@ -78,7 +85,8 @@ class Event implements IDispatchAble {
     /**
      * clear delayed time.
      */
-    public function clear_delayed_time() {
+    public function clear_delayed_time()
+    {
         $this->delay = 0;
     }
 
@@ -87,15 +95,18 @@ class Event implements IDispatchAble {
      *
      * @return int
      */
-    public function get_delayed_time() {
+    public function get_delayed_time()
+    {
         return $this->delay;
     }
 
     /**
-     * @return string
      * @throws
+     *
+     * @return string
      */
-    public function get_short_name() {
+    public function get_short_name()
+    {
         return (new \ReflectionClass($this))->getShortName();
     }
 }

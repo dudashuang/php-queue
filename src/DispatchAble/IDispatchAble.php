@@ -1,7 +1,9 @@
 <?php
+
 namespace Lily\DispatchAble;
 
-interface IDispatchAble {
+interface IDispatchAble
+{
     public function prepare_data(): string;
 
     public function get_queue();

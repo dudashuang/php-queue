@@ -1,16 +1,15 @@
 <?php
+
 namespace Lily\Listeners;
 
 use Lily\Events\Event;
 use Lily\Jobs\Job;
 
 /**
- * Class Listener
- *
- * @package Lily\Listeners
+ * Class Listener.
  */
-class Listener extends Job {
-
+class Listener extends Job
+{
     /**
      * @var Event
      */
@@ -21,7 +20,8 @@ class Listener extends Job {
      *
      * @param Event $event
      */
-    final public function __construct(Event $event) {
+    final public function __construct(Event $event)
+    {
         $this->event = $event;
         $this->set_queue($this->get_short_name());
     }
@@ -29,11 +29,13 @@ class Listener extends Job {
     /**
      * @return mixed|void
      */
-    public function handle() {
+    public function handle()
+    {
         // TODO: Implement handle() method.
     }
 
-    public function get_event() {
+    public function get_event()
+    {
         return $this->event;
     }
 }

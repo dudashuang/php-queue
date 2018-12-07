@@ -1,15 +1,14 @@
 <?php
+
 namespace Lily\Jobs;
 
 use Lily\DispatchAble\IDispatchAble;
 
 /**
- * Class Job
- *
- * @package Lily\Jobs
+ * Class Job.
  */
-abstract class Job implements IDispatchAble {
-
+abstract class Job implements IDispatchAble
+{
     /**
      * @var string
      */
@@ -31,7 +30,7 @@ abstract class Job implements IDispatchAble {
     private $queue;
 
     /**
-     * delayed seconds
+     * delayed seconds.
      *
      * @var int
      */
@@ -47,7 +46,8 @@ abstract class Job implements IDispatchAble {
     /**
      * @return string
      */
-    public function prepare_data(): string {
+    public function prepare_data(): string
+    {
         $this->get_job_id();
 
         return serialize($this);
@@ -56,15 +56,18 @@ abstract class Job implements IDispatchAble {
     /**
      * @return string
      */
-    public function get_queue() {
+    public function get_queue()
+    {
         return $this->queue;
     }
 
     /**
      * @param string $queue
+     *
      * @return $this
      */
-    public function set_queue(string $queue) {
+    public function set_queue(string $queue)
+    {
         $this->queue = $queue;
 
         return $this;
@@ -73,15 +76,17 @@ abstract class Job implements IDispatchAble {
     /**
      * @return int
      */
-    public function get_try_num() {
+    public function get_try_num()
+    {
         return $this->try_num;
     }
 
     /**
      * @return string
      */
-    public function get_job_id() {
-        $this->job_id = $this->job_id ?? hash('sha256', $this->get_short_name() . microtime(true) . mt_rand());
+    public function get_job_id()
+    {
+        $this->job_id = $this->job_id ?? hash('sha256', $this->get_short_name().microtime(true).mt_rand());
 
         return $this->job_id;
     }
@@ -89,21 +94,24 @@ abstract class Job implements IDispatchAble {
     /**
      * @return bool
      */
-    public function check_is_deleted() {
+    public function check_is_deleted()
+    {
         return $this->is_deleted;
     }
 
     /**
      * mark the job failed.
      */
-    public function mark_as_failed() {
+    public function mark_as_failed()
+    {
         $this->try_num += 1;
     }
 
     /**
      * mark the job be deleted, should not retry.
      */
-    public function delete() {
+    public function delete()
+    {
         $this->is_deleted = true;
     }
 
@@ -112,15 +120,18 @@ abstract class Job implements IDispatchAble {
      *
      * @return bool
      */
-    public function check_can_retry() {
+    public function check_can_retry()
+    {
         return $this->try_num < 3 && !$this->check_is_deleted();
     }
 
     /**
      * @param int $seconds
+     *
      * @return $this
      */
-    public function delay(int $seconds) {
+    public function delay(int $seconds)
+    {
         $this->delay = $seconds;
 
         return $this;
@@ -129,7 +140,8 @@ abstract class Job implements IDispatchAble {
     /**
      * clear delayed time.
      */
-    public function clear_delayed_time() {
+    public function clear_delayed_time()
+    {
         $this->delay = 0;
     }
 
@@ -138,15 +150,18 @@ abstract class Job implements IDispatchAble {
      *
      * @return int
      */
-    public function get_delayed_time() {
+    public function get_delayed_time()
+    {
         return $this->delay;
     }
 
     /**
-     * @return string
      * @throws
+     *
+     * @return string
      */
-    public function get_short_name() {
+    public function get_short_name()
+    {
         return (new \ReflectionClass($this))->getShortName();
     }
 }
