@@ -1,4 +1,7 @@
 <?php
+
 namespace Lily\Exceptions;
 
-class UnknownDriverException extends \Exception {}
+class UnknownDriverException extends \Exception
+{
+}

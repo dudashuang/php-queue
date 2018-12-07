@@ -1,7 +1,9 @@
 <?php
+
 namespace LilyTest;
 
-class ListenerServiceProvider {
+class ListenerServiceProvider
+{
     private static $listeners = [
         'EarnPointListener' => [
             'PaySuccessEvent',
@@ -14,10 +16,13 @@ class ListenerServiceProvider {
 
     /**
      * @param $listener
-     * @return mixed
+     *
      * @throws \Exception
+     *
+     * @return mixed
      */
-    public static function get_listener($listener) {
+    public static function get_listener($listener)
+    {
         if (!array_key_exists($listener, static::$listeners)) {
             throw new \Exception('the listener was not found!');
         }

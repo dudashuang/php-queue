@@ -1,4 +1,5 @@
 <?php
+
 namespace Lily\Drivers;
 
 use Lily\Application;
@@ -10,7 +11,8 @@ use Lily\Jobs\Job;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 
-class RabbitMQ implements IDriver {
+class RabbitMQ implements IDriver
+{
     use ListenerHelper;
 
     /**
@@ -28,14 +30,16 @@ class RabbitMQ implements IDriver {
      *
      * @param RabbitMQConnector $connector
      */
-    public function __construct(RabbitMQConnector $connector) {
+    public function __construct(RabbitMQConnector $connector)
+    {
         $this->connector = $connector;
     }
 
     /**
      * @param Application $app
      */
-    public function set_app(Application $app) {
+    public function set_app(Application $app)
+    {
         $this->app = $app;
     }
 
@@ -43,9 +47,11 @@ class RabbitMQ implements IDriver {
      * dispatch a job or event.
      *
      * @param IDispatchAble $message
+     *
      * @throws UnknownDispatchException
      */
-    public function dispatch(IDispatchAble $message) {
+    public function dispatch(IDispatchAble $message)
+    {
         if ($message instanceof Job) {
             $this->_dispatch_job($message);
         } elseif ($message instanceof Event) {
@@ -61,7 +67,8 @@ class RabbitMQ implements IDriver {
      *
      * @param string $queue
      */
-    public function consume(string $queue) {
+    public function consume(string $queue)
+    {
         $connection = $this->connector->get_connection();
         $channel = $connection->channel();
         $channel->queue_declare($queue, false, true, false, false);
@@ -69,7 +76,6 @@ class RabbitMQ implements IDriver {
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
         $callback = function ($msg) {
-
             $job = unserialize($msg->body);
 
             try {
@@ -79,11 +85,10 @@ class RabbitMQ implements IDriver {
             } catch (\Exception $e) {
                 $job->mark_as_failed();
                 $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
-                echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
+                echo date('Y-m-d H:i:s').' job_id:'.$job->get_job_id().' error:'.$e->getMessage().' at:'.$e->getFile().':'.$e->getLine()."\n";
 
                 $msg->delivery_info['channel']->basic_reject($msg->delivery_info['delivery_tag'], false);
             }
-
         };
 
         $channel->basic_qos(null, 1, null);
@@ -95,7 +100,6 @@ class RabbitMQ implements IDriver {
 
         $channel->close();
         $connection->close();
-
     }
 
     /**
@@ -103,10 +107,12 @@ class RabbitMQ implements IDriver {
      * consume listener.
      *
      * @param string $listener_name
-     * @param array $events
+     * @param array  $events
+     *
      * @throws
      */
-    public function listen(string $listener_name, array $events) {
+    public function listen(string $listener_name, array $events)
+    {
         $connection = $this->connector->get_connection();
         $channel = $connection->channel();
         $queue_name = $this->get_short_name($listener_name);
@@ -129,7 +135,7 @@ class RabbitMQ implements IDriver {
             } catch (\Exception $e) {
                 $listener->mark_as_failed();
                 $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
-                echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
+                echo date('Y-m-d H:i:s').' job_id:'.$listener->get_job_id().' error:'.$e->getMessage().' at:'.$e->getFile().':'.$e->getLine()."\n";
 
                 $msg->delivery_info['channel']->basic_reject($msg->delivery_info['delivery_tag'], false);
             }
@@ -147,12 +153,14 @@ class RabbitMQ implements IDriver {
     }
 
     /**
-     * dispatch a event
+     * dispatch a event.
      *
      * @param Event $event
+     *
      * @throws
      */
-    private function _dispatch_event(Event $event) {
+    private function _dispatch_event(Event $event)
+    {
         $connection = $this->connector->get_connection();
         $channel = $connection->channel();
 
@@ -160,23 +168,21 @@ class RabbitMQ implements IDriver {
             $table = new AMQPTable();
             $table->set('x-dead-letter-exchange', $event->get_queue());
 
-            $channel->queue_declare($event->get_queue() . '-delay',false,true,false,false,false, $table);
+            $channel->queue_declare($event->get_queue().'-delay', false, true, false, false, false, $table);
 
             $msg = new AMQPMessage(
                 $event->prepare_data(),
                 [
                     'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                    'expiration' => $event->get_delayed_time() * 1000,
+                    'expiration'    => $event->get_delayed_time() * 1000,
                 ]
             );
 
-            $channel->basic_publish($msg, '', $event->get_queue() . '-delay');
-
+            $channel->basic_publish($msg, '', $event->get_queue().'-delay');
         } else {
-
             $msg = new AMQPMessage(
                 $event->prepare_data(),
-                array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
+                ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]
             );
 
             $channel->exchange_declare($event->get_queue(), 'fanout', false, true, false);
@@ -193,7 +199,8 @@ class RabbitMQ implements IDriver {
      *
      * @param Job $job
      */
-    private function _dispatch_job(Job $job) {
+    private function _dispatch_job(Job $job)
+    {
         $connection = $this->connector->get_connection();
         $channel = $connection->channel();
 
@@ -212,25 +219,23 @@ class RabbitMQ implements IDriver {
             // queue live to time.
             // $table->set('x-message-ttl',$job->get_delayed_time() * 1000);
 
-            $channel->queue_declare($queue_name . '-delay',false,true,false,false,false, $table);
+            $channel->queue_declare($queue_name.'-delay', false, true, false, false, false, $table);
 
             $msg = new AMQPMessage(
                 $job->prepare_data(),
                 [
                     'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                    'expiration' => $job->get_delayed_time() * 1000,
+                    'expiration'    => $job->get_delayed_time() * 1000,
                 ]
             );
 
-            $channel->basic_publish($msg, '', $queue_name . '-delay');
-
+            $channel->basic_publish($msg, '', $queue_name.'-delay');
         } else {
-
             $channel->queue_declare($queue_name, false, true, false, false);
 
             $msg = new AMQPMessage(
                 $job->prepare_data(),
-                array('delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT)
+                ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]
             );
 
             $channel->basic_publish($msg, '', $queue_name);

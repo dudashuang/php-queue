@@ -1,4 +1,7 @@
 <?php
+
 namespace Lily\Exceptions;
 
-class UnknownDispatchException extends \Exception {}
+class UnknownDispatchException extends \Exception
+{
+}

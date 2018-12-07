@@ -1,17 +1,21 @@
 <?php
+
 namespace LilyTest;
 
-class TestModel {
+class TestModel
+{
     public $a;
 
     private $b;
 
-    public function __construct($a, $b) {
+    public function __construct($a, $b)
+    {
         $this->a = $a;
         $this->b = $b;
     }
 
-    public function show() {
+    public function show()
+    {
         return $this->a + $this->b;
     }
 }

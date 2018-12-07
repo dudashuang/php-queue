@@ -1,4 +1,5 @@
 <?php
+
 namespace Lily\Drivers;
 
 use Lily\Application;
@@ -8,7 +9,8 @@ use Lily\Events\Event;
 use Lily\Exceptions\UnknownDispatchException;
 use Lily\Jobs\Job;
 
-class Redis implements IDriver {
+class Redis implements IDriver
+{
     use ListenerHelper;
 
     /**
@@ -26,14 +28,16 @@ class Redis implements IDriver {
      *
      * @param RedisConnector $connector
      */
-    public function __construct(RedisConnector $connector) {
+    public function __construct(RedisConnector $connector)
+    {
         $this->connector = $connector;
     }
 
     /**
      * @param Application $app
      */
-    public function set_app(Application $app) {
+    public function set_app(Application $app)
+    {
         $this->app = $app;
     }
 
@@ -41,9 +45,11 @@ class Redis implements IDriver {
      * dispatch a job or event.
      *
      * @param IDispatchAble $message
+     *
      * @throws UnknownDispatchException
      */
-    public function dispatch(IDispatchAble $message) {
+    public function dispatch(IDispatchAble $message)
+    {
         if ($message instanceof Job) {
             $this->_dispatch_job($message);
         } elseif ($message instanceof Event) {
@@ -58,9 +64,11 @@ class Redis implements IDriver {
      * consume jobs.
      *
      * @param string $queue
+     *
      * @throws UnknownDispatchException
      */
-    public function consume(string $queue) {
+    public function consume(string $queue)
+    {
         $connection = $this->connector->get_connection();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
@@ -76,11 +84,10 @@ class Redis implements IDriver {
 
             try {
                 $job->handle();
-
             } catch (\Exception $e) {
                 $job->mark_as_failed();
                 $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
-                echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
+                echo date('Y-m-d H:i:s').' job_id:'.$job->get_job_id().' error:'.$e->getMessage().' at:'.$e->getFile().':'.$e->getLine()."\n";
             }
         }
     }
@@ -90,10 +97,12 @@ class Redis implements IDriver {
      * consume listener.
      *
      * @param string $listener_name
-     * @param array $events
+     * @param array  $events
+     *
      * @throws
      */
-    public function listen(string $listener_name, array $events) {
+    public function listen(string $listener_name, array $events)
+    {
         $connection = $this->connector->get_connection();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
@@ -116,7 +125,7 @@ class Redis implements IDriver {
                     } catch (\Exception $e) {
                         $listener->mark_as_failed();
                         $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
-                        echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
+                        echo date('Y-m-d H:i:s').' job_id:'.$listener->get_job_id().' error:'.$e->getMessage().' at:'.$e->getFile().':'.$e->getLine()."\n";
                     }
                     break;
             }
@@ -128,7 +137,8 @@ class Redis implements IDriver {
      *
      * @param Job $job
      */
-    private function _dispatch_job(Job $job) {
+    private function _dispatch_job(Job $job)
+    {
         $connection = $this->connector->get_connection();
 
         if ($job->get_queue()) {
@@ -146,7 +156,8 @@ class Redis implements IDriver {
      *
      * @param Event $event
      */
-    private function _dispatch_event(Event $event) {
+    private function _dispatch_event(Event $event)
+    {
         $connection = $this->connector->get_connection();
 
         $data = $event->prepare_data();

@@ -1,9 +1,11 @@
 <?php
+
 namespace Lily\Connectors;
 
 use Predis\Client;
 
-class RedisConnector implements IConnector {
+class RedisConnector implements IConnector
+{
     private $scheme = 'tcp';
 
     private $host = '127.0.0.1';
@@ -12,7 +14,8 @@ class RedisConnector implements IConnector {
 
     private $read_write_timeout = 0;
 
-    public function __construct(array $options = []) {
+    public function __construct(array $options = [])
+    {
         $keys = get_object_vars($this);
 
         foreach ($options as $key => $value) {
@@ -25,7 +28,8 @@ class RedisConnector implements IConnector {
     /**
      * @return Client
      */
-    public function get_connection() {
+    public function get_connection()
+    {
         return new Client([
             'scheme'             => $this->scheme,
             'host'               => $this->host,

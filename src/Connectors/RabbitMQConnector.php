@@ -1,9 +1,11 @@
 <?php
+
 namespace Lily\Connectors;
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 
-class RabbitMQConnector implements IConnector {
+class RabbitMQConnector implements IConnector
+{
     private $host = 'localhost';
 
     private $port = 5672;
@@ -12,7 +14,8 @@ class RabbitMQConnector implements IConnector {
 
     private $password = 'guest';
 
-    public function __construct(array $options = []) {
+    public function __construct(array $options = [])
+    {
         $keys = get_object_vars($this);
 
         foreach ($options as $key => $value) {
@@ -25,8 +28,8 @@ class RabbitMQConnector implements IConnector {
     /**
      * @return AMQPStreamConnection
      */
-    public function get_connection() {
+    public function get_connection()
+    {
         return new AMQPStreamConnection($this->host, $this->port, $this->username, $this->password);
     }
-
 }

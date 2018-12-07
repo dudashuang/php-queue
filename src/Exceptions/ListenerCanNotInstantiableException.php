@@ -1,4 +1,7 @@
 <?php
+
 namespace Lily\Exceptions;
 
-class ListenerCanNotInstantiableException extends \Exception {}
+class ListenerCanNotInstantiableException extends \Exception
+{
+}

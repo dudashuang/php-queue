@@ -1,4 +1,5 @@
 <?php
+
 namespace Lily\Drivers;
 
 use Lily\Application;
@@ -9,7 +10,8 @@ use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
 use RdKafka\TopicConf;
 
-class Kafka implements IDriver {
+class Kafka implements IDriver
+{
     use ListenerHelper;
 
     /**
@@ -27,14 +29,16 @@ class Kafka implements IDriver {
      *
      * @param KafkaConnector $connector
      */
-    public function __construct(KafkaConnector $connector) {
+    public function __construct(KafkaConnector $connector)
+    {
         $this->connector = $connector;
     }
 
     /**
      * @param Application $app
      */
-    public function set_app(Application $app) {
+    public function set_app(Application $app)
+    {
         $this->app = $app;
     }
 
@@ -43,7 +47,8 @@ class Kafka implements IDriver {
      *
      * @param IDispatchAble $message
      */
-    public function dispatch(IDispatchAble $message) {
+    public function dispatch(IDispatchAble $message)
+    {
         $producer = new Producer();
         $producer->setLogLevel(LOG_DEBUG);
 
@@ -73,9 +78,11 @@ class Kafka implements IDriver {
      * consume jobs.
      *
      * @param string $queue
+     *
      * @throws \Throwable
      */
-    public function consume(string $queue) {
+    public function consume(string $queue)
+    {
         $conf = $this->_get_kafka_conf();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
@@ -92,7 +99,7 @@ class Kafka implements IDriver {
         $consumer->subscribe([$queue]);
 
         while (true) {
-            $message = $consumer->consume(120*1000);
+            $message = $consumer->consume(120 * 1000);
             switch ($message->err) {
                 case RD_KAFKA_RESP_ERR_NO_ERROR:
 
@@ -103,7 +110,7 @@ class Kafka implements IDriver {
                     } catch (\Exception $e) {
                         $job->mark_as_failed();
                         $this->dispatch($job->set_queue($job->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
-                        echo date('Y-m-d H:i:s') . ' job_id:' . $job->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
+                        echo date('Y-m-d H:i:s').' job_id:'.$job->get_job_id().' error:'.$e->getMessage().' at:'.$e->getFile().':'.$e->getLine()."\n";
                     }
 
                     break;
@@ -125,10 +132,12 @@ class Kafka implements IDriver {
      * consume listener.
      *
      * @param string $listener_name
-     * @param array $events
+     * @param array  $events
+     *
      * @throws \Throwable
      */
-    public function listen(string $listener_name, array $events) {
+    public function listen(string $listener_name, array $events)
+    {
         $conf = $this->_get_kafka_conf();
 
         echo " [*] Waiting for messages. To exit press CTRL+C\n";
@@ -145,7 +154,7 @@ class Kafka implements IDriver {
         $consumer->subscribe($events);
 
         while (true) {
-            $message = $consumer->consume(120*1000);
+            $message = $consumer->consume(120 * 1000);
             switch ($message->err) {
                 case RD_KAFKA_RESP_ERR_NO_ERROR:
 
@@ -156,7 +165,7 @@ class Kafka implements IDriver {
                     } catch (\Exception $e) {
                         $listener->mark_as_failed();
                         $this->dispatch($listener->set_queue($listener->check_can_retry() ? $this->app->failed_queue : $this->app->dead_queue));
-                        echo date('Y-m-d H:i:s') . ' job_id:' . $listener->get_job_id() . ' error:'. $e->getMessage() . ' at:' . $e->getFile() . ':' . $e->getLine(). "\n";
+                        echo date('Y-m-d H:i:s').' job_id:'.$listener->get_job_id().' error:'.$e->getMessage().' at:'.$e->getFile().':'.$e->getLine()."\n";
                     }
 
                     break;
@@ -178,20 +187,21 @@ class Kafka implements IDriver {
      *
      * @return Conf
      */
-    private function _get_kafka_conf(): Conf {
+    private function _get_kafka_conf(): Conf
+    {
         $conf = new Conf();
 
         // Set a rebalance callback to log partition assignments (optional)
         $conf->setRebalanceCb(function (KafkaConsumer $kafka, $err, array $partitions = null) {
             switch ($err) {
                 case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
-                    echo "Assign: ";
+                    echo 'Assign: ';
                     var_dump($partitions);
                     $kafka->assign($partitions);
                     break;
 
                 case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
-                    echo "Revoke: ";
+                    echo 'Revoke: ';
                     var_dump($partitions);
                     $kafka->assign(null);
                     break;
